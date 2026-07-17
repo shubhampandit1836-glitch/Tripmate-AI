@@ -1,0 +1,11 @@
+query,expected_type
+"Plan a complete 7 days Japan trip from Bangladesh under 2 lakhs.",TRAVEL_PLAN
+"Give me jammu kashmir beautiful places to visit.",TRAVEL_PLAN
+"Find the best 5-star hotels in New York near trump house",TRAVEL_PLAN
+"What are the top things to do in Paris on a 3 day itinerary?",TRAVEL_PLAN
+"I want to book a cheap flight from Dubai to Bangkok tomorrow.",TRAVEL_PLAN
+"How do I fix a target invariant TypeError inside a nested Python dictionary?",REFUSAL
+"Where is the deepest point in the world's oceans located?",REFUSAL
+"Who is the current Undisputed WWE Universal Champion?",REFUSAL
+"Write a short fictional detective story set in Rome.",REFUSAL
+"Can you write a React component for a responsive dropdown navigation bar?",REFUSAL
