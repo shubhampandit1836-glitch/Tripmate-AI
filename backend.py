@@ -51,7 +51,7 @@ if not GROQ_API_KEY:
 
 # =========================\n# LLM Setup with Qwen 3 32B (State-of-the-art for agentic workflows)\n# =========================\n# Using Qwen3-32B from ChatGroq - powerful MoE model excellent for travel planning agents\n# Fallback to GPT-OSS 20B for capability continuity and open-weight transparency\n# Both models are accessible via ChatGroq platform
 primary_llm = ChatGroq(
-    model="qwen/qwen3-32b",
+    model="qwen/qwen3.8-27b",
     api_key=SecretStr(GROQ_API_KEY),
     temperature=0.0,
     # Enable structured output for reliable JSON tool calling
