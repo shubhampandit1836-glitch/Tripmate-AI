@@ -5,7 +5,7 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>TripMate AI</title>
+    <title>TripMate AI — Multi-Agent Travel Planner</title>
 
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -22,7 +22,7 @@
 
         <section class="hero-section">
             <div class="badge">
-                ✈️ TripMate AI — A Multi-Agent Travel Planner with LangGraph
+                ✈️ TripMate AI — Multi-Agent Travel Planner with LangGraph
             </div>
 
             <h1>
@@ -30,7 +30,7 @@
             </h1>
 
             <p>
-                Search flights, discover hotels, and generate a complete travel itinerary using a multi-agent LangGraph system.
+                Search flights, discover hotels, and generate a complete travel itinerary using a multi-agent LangGraph system with real-time web search.
             </p>
         </section>
 
@@ -51,10 +51,14 @@
             </div>
 
             <div class="input-area">
+
                 <textarea
                     id="userInput"
-                    placeholder="Plan a complete 7 days Japan trip including flights, hotels and sightseeing under 2 lakhs..."
-                ></textarea>
+                    placeholder="Plan a complete 7 days Japan trip including flights, hotels and sightseeing under 2 lakhs...
+Search: cheap flights to Paris for November
+Best museums to visit in London
+                    ">
+                </textarea>
 
                 <button id="sendBtn" onclick="sendMessage()">
                     <span id="btnText">Generate Plan</span>
@@ -63,21 +67,15 @@
             </div>
 
             <div class="quick-prompts">
-                <button onclick="setPrompt('Plan a complete 7 days Japan trip from Bangladesh including flights, hotels and sightseeing under 2 lakhs.')">
-                    Japan Trip
-                </button>
+                <button onclick="setPrompt('Plan a complete 7 days Japan trip from Bangladesh including flights, hotels and sightseeing under 2 lakhs.')">Japan Trip</button>
 
-                <button onclick="setPrompt('Plan a 5 days Dubai trip from Dhaka with flights, hotels and sightseeing.')">
-                    Dubai Trip
-                </button>
+                <button onclick="setPrompt('Plan a 5 days Dubai trip from Dhaka with flights, hotels and sightseeing.')">Dubai Trip</button>
 
-                <button onclick="setPrompt('Plan a 7 days Thailand trip from Bangladesh with budget hotels and sightseeing.')">
-                    Thailand Trip
-                </button>
+                <button onclick="setPrompt('Plan a 7 days Thailand trip from Bangladesh with budget hotels and sightseeing.')">Thailand Trip</button>
 
-                <button onclick="setPrompt('Give me jammu kashmir beautiful places to visit.')">
-                    Jammu Kashmir
-                </button>
+                <button onclick="setPrompt('Give me jammu kashmir beautiful places to visit.')">Jammu Kashmir</button>
+
+                <button onclick="setPrompt('Search web for best time to visit Switzerland and top attractions')">Web Search</button>
             </div>
 
         </section>
@@ -91,13 +89,9 @@
                 </div>
 
                 <div class="result-actions">
-                    <button class="copy-btn" onclick="copyResult()">
-                        Copy
-                    </button>
+                    <button class="copy-btn" onclick="copyResult()">Copy</button>
 
-                    <button class="download-btn" onclick="downloadPDF()">
-                        Download PDF
-                    </button>
+                    <button class="download-btn" onclick="downloadPDF()">Download PDF</button>
                 </div>
             </div>
 
@@ -113,7 +107,7 @@
     </main>
 
     <footer>
-        Built with FastAPI, LangGraph, Groq, PostgreSQL, Tavily and AviationStack
+        Built with FastAPI, LangGraph, Qwen3-32B, GPT-OSS, PostgreSQL, Tavily and AviationStack
     </footer>
 
     <!-- Markdown Renderer -->

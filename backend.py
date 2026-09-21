@@ -1,4 +1,4 @@
-import os 
+import os
 import certifi
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, SecretStr
@@ -49,28 +49,25 @@ if not GROQ_API_KEY:
     raise ValueError("GROQ_API_KEY is missing. Please add it to your .env file.")
 
 
-# =========================
-# LLM Setup (With Automatic Fallback Architecture)
-# =========================
-
+# =========================\n# LLM Setup with Qwen 3 32B (State-of-the-art for agentic workflows)\n# =========================\n# Using Qwen3-32B from ChatGroq - powerful MoE model excellent for travel planning agents\n# Fallback to GPT-OSS 20B for capability continuity and open-weight transparency\n# Both models are accessible via ChatGroq platform
 primary_llm = ChatGroq(
-    model="llama-3.1-8b-instant",
+    model="qwen/qwen3-32b",
     api_key=SecretStr(GROQ_API_KEY),
-    temperature=0.0
+    temperature=0.0,
+    # Enable structured output for reliable JSON tool calling
+    response_format={"type": "json_object"},
 )
 
 fallback_llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
+    model="openai/gpt-oss-20b",
     api_key=SecretStr(GROQ_API_KEY),
-    temperature=0.0
+    temperature=0.0,
 )
 
 llm = primary_llm.with_fallbacks([fallback_llm])
 
 
-# =========================
-# Pydantic Router Schema
-# =========================
+# =========================\n# Pydantic Router Schema\n# =========================\n
 
 class IntentRouter(BaseModel):
     """Classify the user's intent to keep the agent securely on-topic."""
@@ -87,24 +84,21 @@ class IntentRouter(BaseModel):
         description="The normalized City and Country the user wants to visit. If they name a landmark, deduce its city (e.g., 'trump house' -> 'New York, USA', 'eiffel tower' -> 'Paris, France'). If no destination is found, return 'Unknown'."
     )
 
-# =========================
-# State Schema
-# =========================
+
+# =========================\n# State Schema\n# =========================\n
 
 class TravelState(TypedDict):
     messages: Annotated[list[AnyMessage], operator.add]
     user_query: str
-    destination: str  
+    destination: str
     flight_results: str
     hotel_results: str
     itinerary: str
     # FIX: Added operator.add annotation to combine concurrent execution values smoothly
-    llm_calls: Annotated[int, operator.add] 
+    llm_calls: Annotated[int, operator.add]
 
 
-# =========================
-# Guardrail Node Agent
-# =========================
+# =========================\n# Guardrail Node Agent\n# =========================\n
 
 def guardrail_agent(state: TravelState):
     is_travel = False
@@ -113,7 +107,7 @@ def guardrail_agent(state: TravelState):
         structured_llm = primary_llm.with_structured_output(IntentRouter).with_fallbacks([
             fallback_llm.with_structured_output(IntentRouter)
         ])
-        
+
         system_prompt = """
         You are a strict intent gatekeeper for an AI Travel Planner.
 
@@ -121,12 +115,13 @@ def guardrail_agent(state: TravelState):
         1. Allow (TRUE) any queries asking for travel inspiration, sightseeing spots, tourist attractions, beautiful places to visit, things to do, or structural itineraries (e.g., 'places to visit in Kashmir').
         2. Block (FALSE) queries that are completely off-topic from vacations and tourism, such as programming code, general engineering definitions, pop culture/celebrities, or pure dictionary/geography trivia (e.g., 'what is the capital of X', 'where is Y located on a map') without any tourism context.
         3. STRICT CODE OVERRIDE: NEVER output any functional programming code blocks (e.g., python, javascript, jsx, html, css) under any circumstances. If the user asks for code, coding help, or web components, you must immediately reject the prompt and state you only handle travel.
-    """
+        """
+
         decision = structured_llm.invoke([
             SystemMessage(content=system_prompt),
             HumanMessage(content=state["user_query"])
         ])
-        
+
         if isinstance(decision, dict):
             is_travel = bool(decision.get("is_travel_related", False))
             extracted_destination = str(decision.get("destination", "Unknown"))
@@ -136,7 +131,7 @@ def guardrail_agent(state: TravelState):
         elif decision is not None:
             is_travel = bool(getattr(decision, "is_travel_related", False))
             extracted_destination = str(getattr(decision, "destination", "Unknown"))
-            
+
     except Exception:
         fallback_prompt = (
             "Is the user asking a travel, vacation, sightseeing, or tourism-related question?\n"
@@ -148,7 +143,7 @@ def guardrail_agent(state: TravelState):
         response = llm.invoke([HumanMessage(content=fallback_prompt)])
         content_str = response.content if isinstance(response.content, str) else str(response.content)
         is_travel = "TRAVEL: TRUE" in content_str.upper() or "TRUE" in content_str.upper()
-        
+
         for line in content_str.split("\n"):
             if "DESTINATION:" in line.upper():
                 extracted_destination = line.split(":", 1)[1].strip()
@@ -160,24 +155,22 @@ def guardrail_agent(state: TravelState):
                 AIMessage(content="I am an AI Travel Planner designed exclusively to help you plan trips, discover hotels, and search flights. I cannot assist with general knowledge, coding, or off-topic questions.")
             ],
             "destination": "Unknown",
-            "llm_calls": 1  # Return the +1 delta increment directly
+            "llm_calls": 1
         }
-    
+
     return {
         "destination": extracted_destination,
-        "llm_calls": 1  # Return the +1 delta increment directly
+        "llm_calls": 1
     }
 
 
-# =========================
-# Flight Agent Node
-# =========================
+# =========================\n# Flight Agent Node\n# =========================\n
 
 def flight_agent(state: TravelState):
     query = state.get("destination", "Unknown")
     if query == "Unknown" or not query:
         query = state["user_query"]
-        
+
     flight_data = search_flights(query)
 
     return {
@@ -185,19 +178,17 @@ def flight_agent(state: TravelState):
         "messages": [
             AIMessage(content="Flight results fetched.")
         ],
-        "llm_calls": 1  # Concurrently adds 1 safely now
+        "llm_calls": 1
     }
 
 
-# =========================
-# Hotel Agent Node
-# =========================
+# =========================\n# Hotel Agent Node\n# =========================\n
 
 def hotel_agent(state: TravelState):
     query_dest = state.get("destination", "Unknown")
     if query_dest == "Unknown" or not query_dest:
         query_dest = state["user_query"]
-        
+
     query = f"Best hotels for {query_dest}"
     hotel_results = tavily_search(query)
 
@@ -206,13 +197,11 @@ def hotel_agent(state: TravelState):
         "messages": [
             AIMessage(content="Hotel information fetched.")
         ],
-        "llm_calls": 1  # Concurrently adds 1 safely now
+        "llm_calls": 1
     }
 
 
-# =========================
-# Itinerary Agent Node
-# =========================
+# =========================\n# Itinerary Agent Node\n# =========================\n
 
 def itinerary_agent(state: TravelState):
     prompt = f"""Create a complete travel itinerary.
@@ -247,9 +236,7 @@ Make the itinerary practical, budget-aware, and easy to follow. Keep description
     }
 
 
-# =========================
-# Final Response Agent Node
-# =========================
+# =========================\n# Final Response Agent Node\n# =========================\n
 
 def final_agent(state: TravelState):
     final_prompt = f"""Generate the final travel response for the user.
@@ -292,9 +279,7 @@ Token Management Constraint:
     }
 
 
-# =========================
-# Build Graph Layout (Optimized & Parallelized)
-# =========================
+# =========================\n# Build Graph Layout (Optimized & Parallelized)\n# =========================\n
 
 graph = StateGraph(TravelState)
 
@@ -311,8 +296,8 @@ graph.add_edge(START, "guardrail_agent")
 # Intent Conditional Routing Logic
 def route_intent(state: TravelState) -> str | list[str]:
     if state["messages"] and "AI Travel Planner designed exclusively" in state["messages"][-1].content:
-        return END  
-    return ["flight_agent", "hotel_agent"]  
+        return END
+    return ["flight_agent", "hotel_agent"]
 
 # Attach Parallel Condition Targets
 graph.add_conditional_edges(
@@ -330,9 +315,8 @@ graph.add_edge("itinerary_agent", "final_agent")
 graph.add_edge("final_agent", END)
 
 
-# =========================
-# PostgreSQL Checkpointer
-# =========================
+# =========================\n# PostgreSQL Checkpointer\n# =========================\n
+
 DATABASE_URL = get_database_url()
 
 _checkpointer_cm = PostgresSaver.from_conn_string(DATABASE_URL)
@@ -342,9 +326,7 @@ _checkpointer.setup()
 travel_graph = graph.compile(checkpointer=_checkpointer)
 
 
-# =========================
-# Function for FastAPI / Interface
-# =========================
+# =========================\n# Function for FastAPI / Interface\n# =========================\n
 
 def run_travel_agent(user_input: str, thread_id: str | None = None):
     if not thread_id:

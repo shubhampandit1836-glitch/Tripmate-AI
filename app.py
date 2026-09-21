@@ -6,9 +6,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
 
-from backend import run_travel_agent
+from backend import run_travel_agent, tavily_search
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -17,7 +16,6 @@ app = FastAPI(
     description="LangGraph Multi-Agent Travel Planner with FastAPI Frontend",
     version="1.0.0"
 )
-
 
 app.mount(
     "/static",
@@ -31,11 +29,9 @@ templates = Jinja2Templates(
 )
 
 
-
 class TravelRequest(BaseModel):
     message: str
     thread_id: str | None = None
-
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -77,7 +73,6 @@ async def travel_planner(request_data: TravelRequest):
                 "llm_calls": result["llm_calls"],
             }
         )
-
     except Exception as e:
         print("ERROR:", e)
         traceback.print_exc()
@@ -91,6 +86,41 @@ async def travel_planner(request_data: TravelRequest):
         )
 
 
+@app.post("/api/search")
+async def web_search_endpoint(request_data: dict):
+    """Real-time web search endpoint for current information"""
+    query = request_data.get("query", "").strip()
+    
+    if not query:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error": "Search query cannot be empty."
+            }
+        )
+    
+    try:
+        results = tavily_search(query)
+        return JSONResponse(
+            content={
+                "success": True,
+                "results": results,
+                "query": query
+            }
+        )
+    except Exception as e:
+        print("Search ERROR:", e)
+        traceback.print_exc()
+        
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e)
+            }
+        )
+
 
 @app.get("/health")
 async def health_check():
@@ -103,7 +133,6 @@ async def health_check():
 @app.get("/favicon.ico")
 async def favicon():
     return JSONResponse(content={})
-
 
 
 if __name__ == "__main__":
